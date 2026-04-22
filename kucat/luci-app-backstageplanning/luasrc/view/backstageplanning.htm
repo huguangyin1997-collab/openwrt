@@ -1,0 +1,87 @@
+<%+header%>
+<h1><%:后台规划 - LAN 口设置%></h1>
+<form method="post">
+    <div class="cbi-section">
+        <div class="cbi-section-node">
+            <div class="cbi-value">
+                <label class="cbi-value-title"><%:协议%></label>
+                <div class="cbi-value-field">
+                    <select name="proto" id="proto">
+                        <option value="static"<% if is_static then %> selected="selected"<% end %>>静态地址</option>
+                        <option value="dhcp"<% if not is_static then %> selected="selected"<% end %>>DHCP客户端</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="static_fields" style="<%= is_static and "display:block" or "display:none" %>">
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:IPv4 地址%></label>
+                    <div class="cbi-value-field"><input type="text" name="ip" value="<%=ip%>"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:子网掩码%></label>
+                    <div class="cbi-value-field"><input type="text" name="mask" value="<%=mask%>"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:网关%></label>
+                    <div class="cbi-value-field"><input type="text" name="gw" value="<%=gw%>"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:DNS 服务器%></label>
+                    <div class="cbi-value-field"><input type="text" name="dns" value="<%=dns%>"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:广播地址%></label>
+                    <div class="cbi-value-field"><input type="text" name="bcast" value="<%=bcast%>"></div>
+                </div>
+            </div>
+            
+            <div id="dhcp_fields" style="<%= not is_static and "display:block" or "display:none" %>">
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:当前 IPv4 地址%></label>
+                    <div class="cbi-value-field"><input type="text" value="<%=ip%>" readonly disabled style="background:#f5f5f5"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:当前子网掩码%></label>
+                    <div class="cbi-value-field"><input type="text" value="<%=mask%>" readonly disabled style="background:#f5f5f5"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:当前网关%></label>
+                    <div class="cbi-value-field"><input type="text" value="<%=gw%>" readonly disabled style="background:#f5f5f5"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:当前 DNS 服务器%></label>
+                    <div class="cbi-value-field"><input type="text" value="<%=dns%>" readonly disabled style="background:#f5f5f5"></div>
+                </div>
+                <div class="cbi-value">
+                    <label class="cbi-value-title"><%:当前广播地址%></label>
+                    <div class="cbi-value-field"><input type="text" value="<%=bcast%>" readonly disabled style="background:#f5f5f5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="cbi-page-actions">
+        <input type="submit" name="save" value="<%:保存并应用%>" class="cbi-button cbi-button-apply">
+    </div>
+</form>
+<script>
+    var protoSelect = document.getElementById('proto');
+    var staticDiv = document.getElementById('static_fields');
+    var dhcpDiv = document.getElementById('dhcp_fields');
+    
+    function updateDisplay() {
+        if (protoSelect.value === 'static') {
+            staticDiv.style.display = 'block';
+            dhcpDiv.style.display = 'none';
+        } else {
+            staticDiv.style.display = 'none';
+            dhcpDiv.style.display = 'block';
+        }
+    }
+    
+    if (protoSelect && staticDiv && dhcpDiv) {
+        protoSelect.onchange = updateDisplay;
+        updateDisplay();
+    }
+</script>
+<%+footer%>

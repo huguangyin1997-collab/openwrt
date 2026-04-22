@@ -1,0 +1,278 @@
+#!/bin/sh
+
+export PATH="/usr/sbin:/usr/bin:/sbin:/bin"
+
+# 检测终端类型
+USE_SIMPLE=0
+if [ -n "$TERM" ]; then
+    case "$TERM" in
+        linux|console|dumb|vt100) USE_SIMPLE=1 ;;
+    esac
+fi
+
+# ========== 颜色定义（两种模式都保留）==========
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;37m'
+PINK='\033[1;35m'
+BOLD='\033[1m'
+NC='\033[0m'
+MAIN_COLOR="$CYAN"
+ACCENT_COLOR="$PINK"
+INFO_COLOR="$BLUE"
+
+# ========== 根据模式定义语言和边框 ==========
+if [ "$USE_SIMPLE" -eq 0 ]; then
+    # SSH 模式：中文 + Unicode 边框
+    TITLE_MAIN="🎤 Miku's Backstage Planning 初音未来后台规划"
+    MENU_1="🔧 1) 修改 LAN 口参数（IP/掩码/网关/DNS/广播）"
+    MENU_2="🔄 2) 重启设备"
+    MENU_Q="🎤 q) 退出"
+    HOSTNAME_LABEL="主机名:"; TIME_LABEL="时间:"; LAN_IP_LABEL="LAN IP:"
+    PLEASE_SELECT="👉 请选择操作 [1-2, q]:"
+    EXIT_MSG="👋 感谢使用，再见！"
+    UNKNOWN="未获取到"
+    CONFIRM_PROMPT="确认修改？ (y/n):"
+    CANCEL_MSG="已取消"
+    SAVE_MSG="✓ 配置已保存，3秒后重启设备..."
+    REBOOT_CONFIRM="确定要重启 OpenWrt 设备吗？ (y/n):"
+    REBOOT_MSG="系统将在 1 秒后重启..."
+    MODIFY_TITLE="🔧 修改 LAN 口参数"
+    CURRENT_IP="当前 IP:"; CURRENT_MASK="当前掩码:"; CURRENT_GW="当前网关:"
+    CURRENT_DNS="当前 DNS:"; CURRENT_BCAST="当前广播:"
+    NEW_IP="新 IP 地址"; NEW_MASK="新子网掩码"; NEW_GW="新网关"
+    NEW_DNS="新 DNS 服务器（空格分隔）"; NEW_BCAST="新广播地址（留空自动计算）"
+    WILL_CHANGE="将修改为："; REBOOT_TITLE="🔄 重启设备"
+    INVALID_OPTION="无效选项，请重新选择。"; PRESS_ENTER="按回车键继续..."
+    BORDER_HLINE="──────────────────────────────────────────────────"
+    BORDER_TL="╭"; BORDER_TR="╮"; BORDER_BL="╰"; BORDER_BR="╯"
+    BORDER_CROSS="├"; BORDER_CROSS2="┤"; BORDER_VER="│"
+else
+    # 虚拟机控制台模式：英文 + ASCII 边框（保留颜色）
+    TITLE_MAIN="Miku's Backstage Planning"
+    MENU_1="1) Modify LAN settings (IP/Netmask/Gateway/DNS/Broadcast)"
+    MENU_2="2) Reboot device"
+    MENU_Q="q) Quit"
+    HOSTNAME_LABEL="Hostname:"; TIME_LABEL="Time:"; LAN_IP_LABEL="LAN IP:"
+    PLEASE_SELECT="Please select [1-2, q]:"
+    EXIT_MSG="Goodbye!"
+    UNKNOWN="Unknown"
+    CONFIRM_PROMPT="Confirm change? (y/n):"
+    CANCEL_MSG="Cancelled"
+    SAVE_MSG="Configuration saved, rebooting in 3 seconds..."
+    REBOOT_CONFIRM="Reboot OpenWrt device? (y/n):"
+    REBOOT_MSG="System will reboot in 1 second..."
+    MODIFY_TITLE="Modify LAN Settings"
+    CURRENT_IP="Current IP:"; CURRENT_MASK="Current Netmask:"; CURRENT_GW="Current Gateway:"
+    CURRENT_DNS="Current DNS:"; CURRENT_BCAST="Current Broadcast:"
+    NEW_IP="New IP address"; NEW_MASK="New netmask"; NEW_GW="New gateway"
+    NEW_DNS="New DNS server (space separated)"; NEW_BCAST="New broadcast address (auto if empty)"
+    WILL_CHANGE="Will change to:"; REBOOT_TITLE="Reboot Device"
+    INVALID_OPTION="Invalid option, please try again."; PRESS_ENTER="Press Enter to continue..."
+    BORDER_HLINE="=================================================="
+    BORDER_TL="+"; BORDER_TR="+"; BORDER_BL="+"; BORDER_BR="+"
+    BORDER_CROSS="+"; BORDER_CROSS2="+"; BORDER_VER="|"
+fi
+
+if [ ! -t 0 ]; then exit 0; fi
+
+# ========== trim 函数 ==========
+trim() {
+    local s="$1"
+    while [ "${s# }" != "$s" ]; do s="${s# }"; done
+    while [ "${s#	}" != "$s" ]; do s="${s#	}"; done
+    while [ "${s% }" != "$s" ]; do s="${s% }"; done
+    while [ "${s%	}" != "$s" ]; do s="${s%	}"; done
+    printf '%s' "$s"
+}
+
+get_hostname() { hostname 2>/dev/null || echo "OpenWrt"; }
+get_current_time() { date +"%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "Unknown time"; }
+pause() { printf "\n${YELLOW}%s${NC}" "${1:-$PRESS_ENTER}"; read -r dummy; clear; }
+
+ask_yes_no() {
+    while true; do
+        printf "%b" "$1 (y/n): "
+        IFS= read -r answer
+        answer=$(trim "$answer")
+        case "$answer" in
+            y|Y) return 0 ;;
+            n|N|q|Q) return 1 ;;
+            *) printf "${RED}%s${NC}\n" "$INVALID_OPTION" ;;
+        esac
+    done
+}
+
+validate_ip() {
+    ip=$(printf '%s' "$1" | tr -d '[:space:]')
+    case "$ip" in ''|*[!0-9.]*|*.*.*.*.*|*.) return 1 ;; esac
+    old_ifs=$IFS; IFS='.'; set -- $ip; IFS=$old_ifs
+    [ $# -eq 4 ] || return 1
+    for seg in "$@"; do
+        case "$seg" in ''|*[!0-9]*) return 1 ;; esac
+        [ "$seg" -ge 0 ] 2>/dev/null || return 1
+        [ "$seg" -le 255 ] || return 1
+    done
+    return 0
+}
+
+calc_broadcast() {
+    local ip=$1 mask=$2
+    (
+        IFS=.
+        set -- $ip
+        local i1=$1 i2=$2 i3=$3 i4=$4
+        set -- $mask
+        local m1=$1 m2=$2 m3=$3 m4=$4
+        printf "%d.%d.%d.%d" \
+            $((i1 | (255 - m1))) \
+            $((i2 | (255 - m2))) \
+            $((i3 | (255 - m3))) \
+            $((i4 | (255 - m4)))
+    )
+}
+
+get_current_values() {
+    decode_cidr() {
+        local bits=$1; local mask=""
+        for i in 1 2 3 4; do
+            if [ "${bits:-0}" -ge 8 ]; then mask="$mask.255"; bits=$((bits-8))
+            elif [ "${bits:-0}" -gt 0 ]; then mask="$mask.$((256 - 2**(8-bits)))"; bits=0
+            else mask="$mask.0"; fi
+        done
+        echo "${mask#.}"
+    }
+    STATUS=$(ubus call network.interface.lan status 2>/dev/null)
+    IP=$(echo "$STATUS" | jsonfilter -e '@["ipv4-address"][0].address')
+    MASK_BITS=$(echo "$STATUS" | jsonfilter -e '@["ipv4-address"][0].mask')
+    MASK=$(decode_cidr ${MASK_BITS:-24})
+    GW=$(echo "$STATUS" | jsonfilter -e '@.route' | grep -oE '"nexthop": "[0-9.]+"' | head -1 | cut -d'"' -f4)
+    DNS_A=$(echo "$STATUS" | jsonfilter -e '@["dns-server"][*]')
+    DNS_I=$(echo "$STATUS" | jsonfilter -e '@.inactive["dns-server"][*]')
+    DNS_ALL=$(echo "$DNS_A $DNS_I" | tr " " "\n" | grep -vE "^$|table:" | sort -u | xargs)
+    [ -z "$DNS_ALL" ] && DNS_ALL="$GW"
+    DEV=$(echo "$STATUS" | jsonfilter -e '@.l3_device' || echo "br-lan")
+    BCAST=$(ip -4 addr show dev "$DEV" 2>/dev/null | awk '/brd / {print $4}' | head -n 1)
+    CUR_IP="${IP:-$UNKNOWN}"; CUR_MASK="${MASK:-$UNKNOWN}"; CUR_GW="${GW:-$UNKNOWN}"
+    CUR_DNS="${DNS_ALL:-$UNKNOWN}"; CUR_BCAST="${BCAST:-$UNKNOWN}"
+}
+
+draw_header() {
+    get_current_values
+    clear
+    printf "%b\n" "${MAIN_COLOR}${BORDER_TL}${BORDER_HLINE}${BORDER_TR}${NC}"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_VER}${NC}  ${BOLD}${ACCENT_COLOR}${TITLE_MAIN}${NC}          ${MAIN_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+    printf "${MAIN_COLOR}${BORDER_VER}${NC}  ${GRAY}${HOSTNAME_LABEL}${NC} ${WHITE}%-15s${NC}  ${GRAY}${TIME_LABEL}${NC} ${WHITE}%-19s${NC} ${MAIN_COLOR}${BORDER_VER}${NC}\n" "$(get_hostname)" "$(get_current_time)"
+    printf "${MAIN_COLOR}${BORDER_VER}${NC}  ${GRAY}${LAN_IP_LABEL}${NC} ${GREEN}%-34s${NC} ${MAIN_COLOR}${BORDER_VER}${NC}\n" "$CUR_IP"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+}
+
+draw_menu() {
+    printf "%b\n" "${MAIN_COLOR}${BORDER_VER}${NC}  ${ACCENT_COLOR}${MENU_1}${NC}${MAIN_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_VER}${NC}  ${ACCENT_COLOR}${MENU_2}${NC}                                  ${MAIN_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_VER}${NC}  ${ACCENT_COLOR}${MENU_Q}${NC}                                      ${MAIN_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${MAIN_COLOR}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+    echo ""
+}
+
+change_ip() {
+    get_current_values
+    echo ""
+    printf "%b\n" "${INFO_COLOR}${BORDER_TL}${BORDER_HLINE}${BORDER_TR}${NC}"
+    printf "%b\n" "${INFO_COLOR}${BORDER_VER}${NC}  ${BOLD}${MODIFY_TITLE}${NC}                                      ${INFO_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${INFO_COLOR}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+    printf "${INFO_COLOR}${BORDER_VER}${NC} ${CURRENT_IP}     ${GREEN}%-32s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$CUR_IP"
+    printf "${INFO_COLOR}${BORDER_VER}${NC} ${CURRENT_MASK}   ${GREEN}%-32s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$CUR_MASK"
+    printf "${INFO_COLOR}${BORDER_VER}${NC} ${CURRENT_GW}   ${GREEN}%-32s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$CUR_GW"
+    printf "${INFO_COLOR}${BORDER_VER}${NC} ${CURRENT_DNS}   ${GREEN}%-32s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$CUR_DNS"
+    printf "${INFO_COLOR}${BORDER_VER}${NC} ${CURRENT_BCAST}   ${GREEN}%-32s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$CUR_BCAST"
+    printf "%b\n" "${INFO_COLOR}${BORDER_VER}${NC}                                                  ${INFO_COLOR}${BORDER_VER}${NC}"
+
+    printf "%b" "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${NEW_IP} [${CUR_IP}]:${NC} "
+    IFS= read -r new_ip; new_ip=$(trim "$new_ip"); [ -z "$new_ip" ] && new_ip="$CUR_IP"
+    printf "%b" "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${NEW_MASK} [${CUR_MASK}]:${NC} "
+    IFS= read -r new_mask; new_mask=$(trim "$new_mask"); [ -z "$new_mask" ] && new_mask="$CUR_MASK"
+    printf "%b" "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${NEW_GW} [${CUR_GW}]:${NC} "
+    IFS= read -r new_gw; new_gw=$(trim "$new_gw"); [ -z "$new_gw" ] && new_gw="$CUR_GW"
+    printf "%b" "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${NEW_DNS} [${CUR_DNS}]:${NC} "
+    IFS= read -r new_dns_raw; new_dns_raw=$(trim "$new_dns_raw"); [ -z "$new_dns_raw" ] && new_dns_raw="$CUR_DNS"
+    printf "%b" "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${NEW_BCAST} [${CUR_BCAST}]:${NC} "
+    IFS= read -r new_bc; new_bc=$(trim "$new_bc"); [ -z "$new_bc" ] && new_bc="$CUR_BCAST"
+
+    printf "%b\n" "${INFO_COLOR}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+    printf "%b\n" "${INFO_COLOR}${BORDER_VER}${NC} ${WILL_CHANGE}                                                  ${INFO_COLOR}${BORDER_VER}${NC}"
+    printf "${INFO_COLOR}${BORDER_VER}${NC}   IP:     ${WHITE}%-36s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$new_ip"
+    printf "${INFO_COLOR}${BORDER_VER}${NC}   ${NEW_MASK}:   ${WHITE}%-36s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$new_mask"
+    printf "${INFO_COLOR}${BORDER_VER}${NC}   ${NEW_GW}:   ${WHITE}%-36s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$new_gw"
+    printf "${INFO_COLOR}${BORDER_VER}${NC}   DNS:    ${WHITE}%-36s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$new_dns_raw"
+    printf "${INFO_COLOR}${BORDER_VER}${NC}   ${NEW_BCAST}:   ${WHITE}%-36s${NC} ${INFO_COLOR}${BORDER_VER}${NC}\n" "$new_bc"
+
+    if ! ask_yes_no "${INFO_COLOR}${BORDER_VER}${NC} ${YELLOW}${CONFIRM_PROMPT}${NC}"; then
+        printf "%b\n" "${INFO_COLOR}${BORDER_VER}${NC} ${GRAY}${CANCEL_MSG}${NC}                                             ${INFO_COLOR}${BORDER_VER}${NC}"
+        printf "%b\n" "${INFO_COLOR}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+        pause; return
+    fi
+
+    uci set network.lan.proto='static'
+    uci set network.lan.ipaddr="$new_ip"
+    uci set network.lan.netmask="$new_mask"
+    uci set network.lan.gateway="$new_gw"
+    uci set network.lan.broadcast="$new_bc"
+    uci set network.lan.peerdns='0'
+    uci set network.lan.delegate='0'
+    uci delete network.lan.dns 2>/dev/null
+    if [ -n "$new_dns_raw" ] && [ "$new_dns_raw" != "$UNKNOWN" ]; then
+        for dns in $new_dns_raw; do uci add_list network.lan.dns="$dns"; done
+    fi
+    uci commit network
+
+    printf "%b\n" "${INFO_COLOR}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+    printf "%b\n" "${INFO_COLOR}${BORDER_VER}${NC} ${GREEN}${SAVE_MSG}${NC}                         ${INFO_COLOR}${BORDER_VER}${NC}"
+    printf "%b\n" "${INFO_COLOR}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+    sleep 3; reboot
+}
+
+reboot_device() {
+    echo ""
+    printf "%b\n" "${RED}${BORDER_TL}${BORDER_HLINE}${BORDER_TR}${NC}"
+    printf "%b\n" "${RED}${BORDER_VER}${NC}  ${BOLD}${REBOOT_TITLE}${NC}                                         ${RED}${BORDER_VER}${NC}"
+    printf "%b\n" "${RED}${BORDER_CROSS}${BORDER_HLINE}${BORDER_CROSS2}${NC}"
+    if ask_yes_no "${RED}${BORDER_VER}${NC}  ${YELLOW}${REBOOT_CONFIRM}${NC}"; then
+        printf "%b\n" "${RED}${BORDER_VER}${NC}  ${GREEN}${REBOOT_MSG}${NC}                           ${RED}${BORDER_VER}${NC}"
+        printf "%b\n" "${RED}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+        sleep 1; reboot
+    else
+        printf "%b\n" "${RED}${BORDER_VER}${NC}  ${GRAY}${CANCEL_MSG}${NC}                                    ${RED}${BORDER_VER}${NC}"
+        printf "%b\n" "${RED}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+        pause
+    fi
+}
+
+while true; do
+    draw_header
+    draw_menu
+    printf "%b" "${YELLOW}${PLEASE_SELECT} ${NC}"
+    IFS= read -r choice
+    choice=$(trim "$choice")
+    case "$choice" in
+        1) change_ip ;;
+        2) reboot_device ;;
+        q|Q)
+            clear
+            printf "%b\n" "${GREEN}${BORDER_TL}${BORDER_HLINE}${BORDER_TR}${NC}"
+            printf "%b\n" "${GREEN}${BORDER_VER}${NC}  ${EXIT_MSG}            ${GREEN}${BORDER_VER}${NC}"
+            printf "%b\n" "${GREEN}${BORDER_BL}${BORDER_HLINE}${BORDER_BR}${NC}"
+            exit 0
+            ;;
+        *)
+            clear
+            printf "%b\n" "${RED}${INVALID_OPTION}${NC}"
+            pause
+            ;;
+    esac
+done
