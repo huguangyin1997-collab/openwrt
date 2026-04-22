@@ -14,5 +14,5 @@ src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-p
 src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main
 
 #src-link custom /usr/src/openwrt/custom-feed
-src-link kucat /home/huguangyin/Desktop/lede/kucat
+src-link kucat /home/huguangyin/Desktop/istoreos/kucat
 src-git istore https://github.com/linkease/istore;main
