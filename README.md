@@ -107,6 +107,31 @@ For a list of supported devices see the [OpenWrt Hardware Database](https://open
 
 OpenWrt is licensed under GPL-2.0
 
+#### 以下是基于中国大陆法律规定所作的合法合规使用OpenWrt的声明与提示：
+
+## 一、 合规使用声明
+    
+    ```
+    尊重网络主权：根据《中华人民共和国计算机信息网络国际联网管理暂行规定》，计算机信息网络直接进行国际联网，必须使用邮电部国家公用电信网提供的国际出入口信道。用户应当自觉遵守国家法律法规。 
+    网络安全合规：OpenWrt作为网络设备固件，用户在使用其提供的代理、网络转发、VPN服务时，应确保相关操作符合国家网络安全管理规定。禁止将网络设备用于非法经营或破坏计算机信息系统。 
+    合规合规接入：在使用OpenWrt配置网络连接国际网络时，必须遵循合规合规的原则，严禁使用非法的代理服务器、VPN通道进行违规数据传输。 
+    后果自负：使用者在使用OpenWrt所产生的任何因违规操作网络而导致的信息内容、数据安全问题或受到法律追究的后果，均由使用者本人承担。 
+    ```
+## 二、 法律风险提示
+
+    ```
+    私自建立国际信道：根据《计算机信息网络国际联网管理暂行规定》第六条，任何单位和个人不得自行建立或者使用其他信道进行国际联网。使用OpenWrt搭建合规之外的代理工具（即“翻墙”行为）属于违法行为。
+    网络内容合规：在接入互联网过程中，禁止制作、复制、发布、传播违法犯罪信息。
+    ```
+
+## 三、 合理使用OpenWrt的范围
+
+    ```
+    用于家庭或企业的合法网络安全防护（如防火墙设置）。
+    局域网管理与数据优化。
+    基于开源软路由的功能扩展，且其应用符合国家安全法律。
+    简而言之：请在国家法律允许的范围内合理、合法地使用OpenWrt设备。
+    ```
 ## 注意
 
 1. **不要用 root 用户进行编译**
@@ -119,154 +144,143 @@ OpenWrt is licensed under GPL-2.0
 
 2. 安装编译依赖
 
-      ```bash
-      sudo apt update -y
-      sudo apt full-upgrade -y
-      sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-      bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext \
-      genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev \
-      libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
-      libreadline-dev libssl-dev libtool llvm lrzsz libnsl-dev ninja-build p7zip p7zip-full patch pkgconf \
-      python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion \
-      swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-      ```
+    ```bash
+    sudo apt update -y
+    sudo apt full-upgrade -y
+    sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+    bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext \
+    genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev \
+    libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
+    libreadline-dev libssl-dev libtool llvm lrzsz libnsl-dev ninja-build p7zip p7zip-full patch pkgconf \
+    python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion \
+    swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+    ```
 
 3. 下载源代码，更新 feeds 并选择配置
 
-      ```bash
-      git clone xxxx(你选择的)
-      cd openwrt
+    ```bash
+    git clone xxxx(你选择的)
+    cd openwrt
 
-      快速入门
-      unset LD_LIBRARY_PATH
-      unset LIBRARY_PATH
-      export LC_ALL=C
-      ./scripts/feeds update -a
-      ./scripts/feeds install -a
-      make menuconfig
-      
-      多线程下载编译
-      make download -j$(nproc)
-      make V=s -j$(nproc)
-      
-      首次建议使用单线程编译
-      make V=s -j1
-      
-      删除编译的保存
-      make clean
-      make distclean
-      ```
+    快速入门
+    unset LD_LIBRARY_PATH
+    unset LIBRARY_PATH
+    export LC_ALL=C
+    ./scripts/feeds update -a
+    ./scripts/feeds install -a
+    make menuconfig
+        
+    多线程下载编译
+    make download -j$(nproc)
+    make V=s -j$(nproc)
+        
+    首次建议使用单线程编译
+    make V=s -j1
+        
+    删除编译的保存
+    make clean
+    make distclean
+    ```
 
 4. 下载 dl 库，编译固件
-     （-j 后面是线程数，第一次编译推荐用单线程）
-   
-      ```bash
-      make download -j8
-      make V=s -j1
-      ```
+
+    （-j 后面是线程数，第一次编译推荐用单线程）
+    
+    ```bash
+    make download -j8
+    make V=s -j1
+    ```
 5. 集成自己想要的固件
 
-      ```
-      cd openwrt
-      ```
-      5.1 Kucat主题
+    ```
+    cd openwrt
+    ```
+    5.1 Kucat主题
         
-              ```
-              git clone https://github.com/sirpdboy/luci-app-kucat-config.git package/luci-app-kucat-config
-              git clone https://github.com/sirpdboy/luci-theme-kucat.git package/luci-theme-kucat
-              移动到本地 kucat 文件夹中
-              mv package/luci-app-kucat-config kucat/
-              mv package/luci-theme-kucat kucat/
-              删除git(可选)
-              rm -rf kucat/luci-app-backstageplanning/.git
-              rm -rf kucat/luci-app-kucat-config/.git
-              修改feeds.conf.default文件 添加（/usr/src 填自己的本地路径）
-              src-link kucat /usr/src/openwrt/kucat 
-              更新安装
-              rm -rf tmp/
-              ./scripts/feeds update kucat
-              ./scripts/feeds install -a -p kucat
-              ```
-      5.2 istore商店
+        ```
+        git clone https://github.com/sirpdboy/luci-app-kucat-config.git package/luci-app-kucat-config
+        git clone https://github.com/sirpdboy/luci-theme-kucat.git package/luci-theme-kucat
+        移动到本地 kucat 文件夹中
+        mv package/luci-app-kucat-config kucat/
+        mv package/luci-theme-kucat kucat/
+        删除git(可选)
+        rm -rf kucat/luci-app-backstageplanning/.git
+        rm -rf kucat/luci-app-kucat-config/.git
+        修改feeds.conf.default文件 添加（/usr/src 填自己的本地路径）
+        src-link kucat /usr/src/openwrt/kucat 
+        更新安装
+        rm -rf tmp/
+        ./scripts/feeds update kucat
+        ./scripts/feeds install -a -p kucat
+        ```
+    5.2 istore商店
         
-             ```
-             echo >> feeds.conf.default
-             echo 'src-git istore https://github.com/linkease/istore;main' >> feeds.conf.default
-             ./scripts/feeds update istore
-             ./scripts/feeds install -d y -p istore luci-app-store
-             ```
+        ```
+        echo >> feeds.conf.default
+        echo 'src-git istore https://github.com/linkease/istore;main' >> feeds.conf.default
+        ./scripts/feeds update istore
+        ./scripts/feeds install -d y -p istore luci-app-store
+        ```
 6.编译前准备
 
-      ```
-      彻底切断环境变量干扰 (最关键)，避免很多麻烦
-      在当前终端执行以下命令，确保编译脚本不会去错误挂载不属于它的库：
-      unset LD_LIBRARY_PATH
-      unset LIBRARY_PATH
-      export LC_ALL=C
-      ```
+    ```
+    彻底切断环境变量干扰 (最关键)，避免很多麻烦
+    在当前终端执行以下命令，确保编译脚本不会去错误挂载不属于它的库：
+    unset LD_LIBRARY_PATH
+    unset LIBRARY_PATH
+    export LC_ALL=C
+    ```
 7.解决环境问题
 
-      ```
-      检查并补全宿主机 musl 开发环境
-      Ubuntu 24.04 对 musl 的支持有所变动。请安装这个包来补全宿主机的 fts 定义：
-      sudo apt update
-      sudo apt install -y musl-tools
-      
-      执行以下命令安装 uuid 的开发头文件和库
-      sudo apt update
-      sudo apt install uuid-dev
-      ```
+    ```
+    检查并补全宿主机 musl 开发环境
+    Ubuntu 24.04 对 musl 的支持有所变动。请安装这个包来补全宿主机的 fts 定义：
+    sudo apt update
+    sudo apt install -y musl-tools
+        
+    执行以下命令安装 uuid 的开发头文件和库
+    sudo apt update
+    sudo apt install uuid-dev
+    ```
 8.更改分区
 
-      8.1.iStoreos 更改分区大小
-            ```
-            scripts/gen_image_generic.sh  
-            将这行改成自己需要的大小
-            USERDATASIZE="2048"
-             ```
-      8.2.LEDE与openwrt原版
-            ```
-            直接编译更改就可以
-            make menuconfig
-            ```
+    8.1.iStoreos 更改分区大小
+
+        ```
+        scripts/gen_image_generic.sh  
+        将这行改成自己需要的大小
+        USERDATASIZE="2048"
+        ```
+    8.2.LEDE与openwrt原版
+
+        ```
+        直接编译更改就可以
+        make menuconfig
+        ```
 9.单独编译自己的开发的ipk包
 
-      9.1.修改feeds.conf.default文件
-            ```
-            #src-link custom /usr/src/openwrt/custom-feed
-            ```
-      9.1编译命令
-            ```
-            rm -rf tmp/
-            ./scripts/feeds update custom
-            ./scripts/feeds install -a -p custom
+    9.1.修改feeds.conf.default文件
 
-            
-            make package/feeds/custom/luci-app-custom/clean
-            make package/feeds/custom/luci-app-custom/compile V=s
-            ```
-10.其它插件
+        ```
+        #src-link custom /usr/src/openwrt/custom-feed
+        ```
+    9.1编译命令
 
-      10.1 openclash
-      
-            ```
-            https://github.com/vernesong/OpenClash.git
-            ```
-      10.2 passwall
-      
-            ```
-            https://github.com/Openwrt-Passwall/openwrt-passwall.git
-            ```
-      10.3 passwall2
-      
-            ```
-            https://github.com/Openwrt-Passwall/openwrt-passwall2.git
-            ```
-      10.4 SSR PLUS
-      
-            ```
-            https://github.com/maxlicheng/luci-app-ssr-plus.git
-            ```
+        ```
+        rm -rf tmp/
+        ./scripts/feeds update custom
+        ./scripts/feeds install -a -p custom
+
+                    
+        make package/feeds/custom/luci-app-custom/clean
+        make package/feeds/custom/luci-app-custom/compile V=s
+        ```
+10.istore 其它插件
+
+    ```
+    https://github.com/bcseputetto/Are-u-ok
+    ```
+    
 11.鸣谢！
 
       特别感谢 **iStore/iStoreOS** 团队及所有 **OpenWrt** 相关的开源项目贡献者，排名不分先后。
