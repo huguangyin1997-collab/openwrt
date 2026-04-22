@@ -280,4 +280,4 @@ OpenWrt is licensed under GPL-2.0
 
 11. 鸣谢！
 
-      特别感谢 **iStore/iStoreOS** 团队及所有 **OpenWrt** 相关的开源项目贡献者，排名不分先后。
+    特别感谢 **iStore/iStoreOS** 团队及所有 **OpenWrt** 相关的开源项目贡献者，排名不分先后。
