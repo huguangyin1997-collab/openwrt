@@ -209,6 +209,8 @@ OpenWrt is licensed under GPL-2.0
         rm -rf tmp/
         ./scripts/feeds update kucat
         ./scripts/feeds install -a -p kucat
+        设置
+        kucat 设置 47 84 235
         ```
     5.2 istore商店
         
@@ -218,7 +220,7 @@ OpenWrt is licensed under GPL-2.0
         ./scripts/feeds update istore
         ./scripts/feeds install -d y -p istore luci-app-store
         ```
-6. 编译前准备
+7. 编译前准备
 
     ```
     彻底切断环境变量干扰 (最关键)，避免很多麻烦
@@ -227,7 +229,7 @@ OpenWrt is licensed under GPL-2.0
     unset LIBRARY_PATH
     export LC_ALL=C
     ```
-7. 解决环境问题
+8. 解决环境问题
 
     ```
     检查并补全宿主机 musl 开发环境
@@ -239,7 +241,7 @@ OpenWrt is licensed under GPL-2.0
     sudo apt update
     sudo apt install uuid-dev
     ```
-8. 更改分区
+9. 更改分区
 
     8.1 iStoreos 更改分区大小
 
@@ -254,7 +256,7 @@ OpenWrt is licensed under GPL-2.0
         直接编译更改就可以
         make menuconfig
         ```
-9. 单独编译自己的开发的ipk包
+10. 单独编译自己的开发的ipk包
 
     9.1 修改feeds.conf.default文件
 
@@ -272,12 +274,12 @@ OpenWrt is licensed under GPL-2.0
         make package/feeds/custom/luci-app-custom/clean
         make package/feeds/custom/luci-app-custom/compile V=s
         ```
-10. istore 其它插件
+11. istore 其它插件
 
     ```
     https://github.com/bcseputetto/Are-u-ok
     ```
 
-11. 鸣谢！
+12. 鸣谢！
 
     特别感谢 **iStore/iStoreOS** 团队及所有 **OpenWrt** 相关的开源项目贡献者，排名不分先后。
